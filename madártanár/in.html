@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flappy Gáborbá</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        @font-face {
+            font-family: 'PixelFont';
+            src: url('fonts/pixel-font.ttf') format('truetype');
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family:'Press Start 2P', cursive;
+            background: #000;
+            color: #fff;
+        }
+
+        canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        #menu, #jatekVege, #keszitok {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            text-align: center;
+            padding: 20px;
+        }
+
+        #menu button, #jatekVege button, #keszitok button {
+            padding: 10px 20px;
+            margin: 10px;
+            font-size: 20px;
+            cursor: pointer;
+            background-color: #c53319;
+            border: none;
+            color: white;
+            border-radius: 5px;
+        }
+
+        #jatekVege, #keszitok {
+            display: none;
+        }
+
+        .button {
+            display: inline-block;
+            min-width:100px;
+            padding: 15px 20px;
+            text-decoration: none;
+            color: #fff;
+            background: red;
+            outline: none;
+            border-radius: 15px;
+            position: relative;
+            font-family:'Press Start 2P', cursive;
+        }
+
+        .button::before {
+            content: '';
+            display: block;
+            position: absolute;
+            top: -7px;
+            left: -3px;
+            right: 0;
+            height: 23px;
+            /* ... marad a meglévő díszítés ... */
+        }
+
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 18px;
+            }
+            #menu button, #jatekVege button, #keszitok button, .button {
+                font-size: 14px;
+                padding: 10px 15px;
+            }
+            #hangeroszabalyzo {
+                width: 80%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="menu">
+        <h1>Flappy Gáborbá</h1>
+        <a href="/madártanár/kreditek/index.html">,,,,</a>
+        <button id="inditas" class="button">Játék indítása</button>
+        <button id="keszitokGomb" class="button">Készítők</button>
+        <button id="zeneMute" class="button">Zene némítása</button>
+        <input type="range" id="hangeroszabalyzo" min="0" max="1" step="0.1" value="0.5" style="margin-top: 20px;">
+    </div>
+    <div id="keszitok">
+        <h1>Készítők</h1>
+        <p>Készítette és írta: Rexolt [Mészáros Bálint]</p>
+        <p>Pixel art betűípus dizájn: [Pizzadude]</p>
+        <p>Zene: 8 Bit Universe </p>
+        <button id="visszaMenu" class="button">Vissza a menübe</button>
+    </div>
+    <div id="jatekVege">
+        <h1>Játék vége</h1>
+        <p>Elért pontszám: <span id="vegsoPontszam">0</span></p>
+        <button id="ujraInditas" class="button">Újraindítás</button>
+        <button id="menuVissza" class="button">Vissza a menübe</button>
+    </div>
+    <canvas id="hatterCanvas"></canvas>
+    <canvas id="jatekter"></canvas>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
+    <script>
+        const hatterCanvas = document.getElementById('hatterCanvas');
+        const hatterCtx = hatterCanvas.getContext('2d');
+        const canvas = document.getElementById('jatekter');
+        const ctx = canvas.getContext('2d');
+
+        function meretezes() {
+            hatterCanvas.width = window.innerWidth;
+            hatterCanvas.height = window.innerHeight;
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        meretezes();
+        window.addEventListener('resize', meretezes);
+
+        const zeneFajlok = ['audio/zene1.mp3', 'audio/zene2.mp3', 'audio/zene3.mp3'];
+        let aktualisZeneIndex = 0;
+
+        const zene = new Howl({
+            src: [zeneFajlok[aktualisZeneIndex]],
+            loop: true,
+            volume: 0.5,
+            onend: () => {
+                aktualisZeneIndex = (aktualisZeneIndex + 1) % zeneFajlok.length;
+                zene.src = zeneFajlok[aktualisZeneIndex];
+                zene.play();
+            }
+        });
+
+        let zeneAktiv = true;
+
+        const hatter = new Image();
+        hatter.src = 'img/background.png';
+
+        let hatterX1 = 0;
+        let hatterX2 = 0;
+        const hatterSebesseg = 2;
+
+        // Mozgási paraméterek
+        const gravitacio = 0.5;
+        const ugrasEro = -8;
+        const csoSzelesseg = 100;
+        const csoRes = 250;
+        const csoSebesseg = 6;
+
+        const madar = new Image();
+        madar.src = 'img/madar.png';
+
+        const csoFelso = new Image();
+        const csoAlso = new Image();
+        csoFelso.src = 'img/cso-felso.png';
+        csoAlso.src = 'img/cso-also.png';
+
+        let madarX = 100;
+        let madarY = 0;
+        let sebessegY = 0;
+
+        let csovek = [];
+        let pontszam = 0;
+        let jatekFut = false;
+
+        function ujCso() {
+            const felsoMagassag = Math.random() * (canvas.height - csoRes - 200) + 100;
+            csovek.push({
+                x: canvas.width,
+                felsoMagassag: felsoMagassag,
+                alsoMagassag: felsoMagassag + csoRes,
+                atlepve: false
+            });
+        }
+
+        function teljesKepernyo() {
+            const elem = document.documentElement;
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen();
+            }
+        }
+
+        document.getElementById('inditas').addEventListener('click', () => {
+            teljesKepernyo(); 
+            document.getElementById('menu').style.display = 'none';
+            zene.play();
+            jatekUjra();
+            jatekFut = true;
+            // Az első frame meghívása
+            requestAnimationFrame(jatekCiklus);
+        });
+
+        document.getElementById('ujraInditas').addEventListener('click', () => {
+            jatekUjra();
+            jatekFut = true;
+            requestAnimationFrame(jatekCiklus);
+        });
+
+        document.getElementById('menuVissza').addEventListener('click', () => {
+            jatekUjra();
+            document.getElementById('jatekVege').style.display = 'none';
+            document.getElementById('menu').style.display = 'flex';
+        });
+
+        document.getElementById('keszitokGomb').addEventListener('click', () => {
+            document.getElementById('menu').style.display = 'none';
+            document.getElementById('keszitok').style.display = 'flex';
+        });
+
+        document.getElementById('visszaMenu').addEventListener('click', () => {
+            document.getElementById('keszitok').style.display = 'none';
+            document.getElementById('menu').style.display = 'flex';
+        });
+
+        document.getElementById('zeneMute').addEventListener('click', () => {
+            if (zeneAktiv) {
+                zene.pause();
+                zeneAktiv = false;
+            } else {
+                zene.play();
+                zeneAktiv = true;
+            }
+        });
+
+        document.getElementById('hangeroszabalyzo').addEventListener('input', (e) => {
+            zene.volume(e.target.value);
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && jatekFut) {
+                sebessegY = ugrasEro;
+            }
+        });
+
+        document.addEventListener('touchstart', () => {
+            if (jatekFut) {
+                sebessegY = ugrasEro;
+            }
+        });
+
+        function jatekUjra() {
+            madarY = canvas.height / 2;
+            sebessegY = 0;
+            csovek = [];
+            pontszam = 0;
+            ujCso();
+            document.getElementById('jatekVege').style.display = 'none';
+        }
+
+        function csovekFrissitese(deltaScale) {
+            csovek.forEach(cso => {
+                cso.x -= csoSebesseg * deltaScale;
+            });
+            csovek = csovek.filter(cso => cso.x + csoSzelesseg > 0);
+            if (csovek.length === 0 || csovek[csovek.length - 1].x < canvas.width - 400) {
+                ujCso();
+            }
+        }
+
+        function utkozesEllenorzes() {
+            for (let cso of csovek) {
+                if (
+                    madarX < cso.x + csoSzelesseg &&
+                    madarX + 75 > cso.x &&
+                    (madarY < cso.felsoMagassag || madarY + 75 > cso.alsoMagassag)
+                ) {
+                    return true;
+                }
+            }
+            return madarY + 75 > canvas.height || madarY < 0;
+        }
+
+        function csovekKirajzolasa() {
+            csovek.forEach(cso => {
+                ctx.drawImage(csoFelso, cso.x, 0, csoSzelesseg, cso.felsoMagassag);
+                ctx.drawImage(csoAlso, cso.x, cso.alsoMagassag, csoSzelesseg, canvas.height - cso.alsoMagassag);
+            });
+        }
+
+        let lastTime = 0;
+        function jatekCiklus(time) {
+            if (!jatekFut) return;
+
+            // Kiszámoljuk a delta időt
+            const delta = time - lastTime;
+            lastTime = time;
+            // Normalizáljuk 60 FPS-hez. 1000/60 ≈ 16.67ms
+            const deltaScale = delta / 16.67;
+
+            // Háttér mozgatása deltaScale alapján
+            hatterKirajzolasa(deltaScale);
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Csövek frissítése, kirajzolása
+            csovekFrissitese(deltaScale);
+            csovekKirajzolasa();
+
+            // Madár mozgása deltaScale alapján
+            sebessegY += gravitacio * deltaScale;
+            madarY += sebessegY * deltaScale;
+
+            ctx.drawImage(madar, madarX, madarY, 75, 75);
+
+            if (utkozesEllenorzes()) {
+                jatekFut = false;
+                document.getElementById('vegsoPontszam').innerText = pontszam;
+                document.getElementById('jatekVege').style.display = 'flex';
+                return;
+            }
+
+            csovek.forEach(cso => {
+                if (!cso.atlepve && cso.x + csoSzelesseg < madarX) {
+                    cso.atlepve = true;
+                    pontszam++;
+                }
+            });
+
+            ctx.font = '36px PixelFont';
+            ctx.fillStyle = 'white';
+            ctx.fillText(`Pontszám: ${pontszam}`, 20, 50);
+
+            requestAnimationFrame(jatekCiklus);
+        }
+
+        function hatterKirajzolasa(deltaScale) {
+            hatterCtx.filter = 'blur(3px)';
+            hatterCtx.clearRect(0, 0, hatterCanvas.width, hatterCanvas.height);
+
+            hatterCtx.drawImage(hatter, hatterX1, 0, hatterCanvas.width, hatterCanvas.height);
+            hatterCtx.drawImage(hatter, hatterX2, 0, hatterCanvas.width, hatterCanvas.height);
+
+            hatterX1 -= hatterSebesseg * deltaScale;
+            hatterX2 -= hatterSebesseg * deltaScale;
+
+            if (hatterX1 + hatterCanvas.width <= 0) {
+                hatterX1 = hatterX2 + hatterCanvas.width;
+            }
+            if (hatterX2 + hatterCanvas.width <= 0) {
+                hatterX2 = hatterX1 + hatterCanvas.width;
+            }
+        }
+
+        ujCso();
+    </script>
+</body>
+</html>

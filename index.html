@@ -64,7 +64,7 @@
       position: relative;
       font-family: 'Press Start 2P', cursive;
     }
-    /* A ::before tartalmát lerövidítettem, a lényeg ugyanaz. */
+    
     .button::before {
       content: '';
       display: block;
@@ -110,9 +110,7 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
   <script>
-    // ---------------------
-    // Canvas méretek
-    // ---------------------
+   
     const hatterCanvas = document.getElementById('hatterCanvas');
     const hatterCtx = hatterCanvas.getContext('2d');
     const canvas = document.getElementById('jatekter');
@@ -124,24 +122,22 @@
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
     }
-    // Első beállítás
+    
     meretFrissites();
-    // Átméretezés figyelése
+	  
     window.addEventListener('resize', meretFrissites);
 
-    // ---------------------
-    // Hang
-    // ---------------------
+  
     const zeneFajlok = ['audio/zene1.mp3', 'audio/zene2.mp3', 'audio/zene3.mp3'];
     let aktualisZeneIndex = 0;
-    let zeneAktiv = false;  // Legyen alapból false -> nem szól
+    let zeneAktiv = false;  
 
     const zene = new Howl({
       src: [zeneFajlok[aktualisZeneIndex]],
       loop: true,
       volume: 0.5,
       onend: () => {
-        // Ha lefutott, váltunk a következőre
+       
         aktualisZeneIndex = (aktualisZeneIndex + 1) % zeneFajlok.length;
         zene.src = zeneFajlok[aktualisZeneIndex];
         zene.play();
@@ -175,9 +171,7 @@
       }
     }
 
-    // ---------------------
-    // Madár és csövek
-    // ---------------------
+
     const madar = new Image();
     madar.src = 'img/madar.png';
 
@@ -198,7 +192,7 @@
     const csoSebesseg = 6;
     let pontszam = 0;
 
-    let jatekFut = false; // Game loop flag
+    let jatekFut = false;
 
     function ujCso() {
       const felsoMagassag = Math.random() * (canvas.height - csoRes - 200) + 100;
@@ -230,7 +224,7 @@
 
     function utkozesEllenorzes() {
       for (let cso of csovek) {
-        // Ha a madár beleér a csőbe
+        
         if (
           madarX < cso.x + csoSzelesseg &&
           madarX + 75 > cso.x &&
@@ -252,29 +246,29 @@
 
     function jatekCiklus(currentTime) {
       if (!jatekFut) {
-        return; // ha időközben leállítottuk, ne fussunk tovább
+        return; 
       }
 
       const deltaTime = (currentTime - previousTime) / 16.6667;
       previousTime = currentTime;
 
-      // Háttér
+      
       hatterKirajzolasa(deltaTime);
 
-      // Canvas törlése
+      
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Csövek
+      
       csovekFrissitese(deltaTime);
       csovekKirajzolasa();
 
-      // Madár mozgása
+      
       sebessegY += gravitacio * deltaTime;
       madarY += sebessegY * deltaTime;
 
       ctx.drawImage(madar, madarX, madarY, 75, 75);
 
-      // Ütközés
+      
       if (utkozesEllenorzes()) {
         jatekFut = false;
         document.getElementById('vegsoPontszam').innerText = pontszam;
@@ -282,7 +276,7 @@
         return;
       }
 
-      // Pontszám frissítés
+      
       csovek.forEach(cso => {
         if (!cso.atlepve && cso.x + csoSzelesseg < madarX) {
           cso.atlepve = true;
@@ -290,12 +284,11 @@
         }
       });
 
-      // Kiírjuk a pontszámot
       ctx.font = '36px PixelFont';
       ctx.fillStyle = 'white';
       ctx.fillText(`Pontszám: ${pontszam}`, 20, 50);
 
-      // Következő frame
+      
       requestAnimationFrame(jatekCiklus);
     }
 
@@ -313,7 +306,7 @@
     }
 
     function jatekInditas() {
-      // Ha nem szól a zene, indítsuk el
+      
       if (!zeneAktiv) {
         zene.play();
         zeneAktiv = true;
@@ -324,9 +317,9 @@
     }
 
     function jatekLeallitas() {
-      // pl. menübe lépéskor
+      
       jatekFut = false;
-      // Ha azt akarod, hogy a menüben ne szóljon a zene, leállítjuk:
+      
       zene.stop();
       zeneAktiv = false;
     }
@@ -335,59 +328,59 @@
     // Események
     // ---------------------
     document.getElementById('inditas').addEventListener('click', () => {
-      // Teljes képernyő (opcionális mobilon)
+      
       if (document.documentElement.requestFullscreen) {
         document.documentElement.requestFullscreen();
       }
-      // Indítjuk a játékot
+      
       document.getElementById('menu').style.display = 'none';
       jatekInditas();
     });
 
     document.getElementById('ujraInditas').addEventListener('click', () => {
-      // Közvetlen újraindítás
+      
       jatekUjra();
       jatekFut = true;
       requestAnimationFrame(jatekCiklus);
     });
 
-    // Vissza a menübe (Game Over képernyőn)
+   
     document.getElementById('menuVissza').addEventListener('click', () => {
-      jatekLeallitas(); // zene.stop(), jatekFut = false, stb.
+      jatekLeallitas(); 
       document.getElementById('jatekVege').style.display = 'none';
       document.getElementById('menu').style.display = 'flex';
     });
 
-    // Készítők gomb
+    
     document.getElementById('keszitokGomb').addEventListener('click', () => {
       document.getElementById('menu').style.display = 'none';
       document.getElementById('keszitok').style.display = 'flex';
     });
 
-    // Vissza a menübe (Készítők képernyőn)
+    
     document.getElementById('visszaMenu').addEventListener('click', () => {
       document.getElementById('keszitok').style.display = 'none';
       document.getElementById('menu').style.display = 'flex';
     });
 
-    // Zene némítás / visszakapcsolás
+   
     document.getElementById('zeneMute').addEventListener('click', () => {
       if (zeneAktiv && zene.playing()) {
         zene.pause();
         zeneAktiv = false;
       } else {
-        // Ha a játékon belül újra akarjuk kapcsolni
+        
         zene.play();
         zeneAktiv = true;
       }
     });
 
-    // Hangerő
+    
     document.getElementById('hangeroszabalyzo').addEventListener('input', (e) => {
       zene.volume(e.target.value);
     });
 
-    // Ugrás Space vagy érintés
+   
     document.addEventListener('keydown', (e) => {
       if (e.code === 'Space' && jatekFut) {
         sebessegY = ugrasEro;
@@ -399,7 +392,7 @@
       }
     });
 
-    // Első cső, ha valaki dev módban azonnal látni akarja
+    
     ujCso();
   </script>
 </body>

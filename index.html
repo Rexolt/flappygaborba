@@ -107,7 +107,7 @@
 
     <label for="nehezsegiSzint">Nehézségi szint:</label>
     <select id="nehezsegiSzint">
-      <option value="lehetetlen">Lehetetlen</option>
+      <option value="lehetetlen">Lehetetlen (De tényleg az!)</option>
       <option value="ultraHardcore">Ultra Hardcore</option>
       <option value="nehez">Nehéz</option>
       <option value="normal" selected>Normál</option>
@@ -287,7 +287,7 @@
          
           setTimeout(() => {
             jatekFut = false;
-            document.getElementById('vegsoNehezseg').innerText = "Lehetetlen (Mondtam, hogy LEHETETLEN! Nem hitted el?)";
+            document.getElementById('vegsoNehezseg').innerText = "Lehetetlen";
             document.getElementById('jatekVege').style.display = 'flex';
           }, 100); 
           break;
